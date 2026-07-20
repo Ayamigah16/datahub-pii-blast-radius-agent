@@ -27,7 +27,11 @@ DataHub Core (open source) has no lineage-based tag/metadata propagation at all 
 
 - **MCP Server** (`get_lineage`, `get_entities`) for column-level downstream lineage tracing.
 - **Tags** (`add_tags`) and **descriptions** (`update_description`, append mode — preserves existing documentation rather than overwriting it) to write findings back onto affected assets.
-- Reuses the dataset's existing PII tag rather than inventing new taxonomy, and creates only the small set of DSR-status tags needed for its own findings.
+- Creates its own small tag taxonomy (`pii-data`, `dsr-pending`, `dsr-no-action`, `dsr-needs-review`) via DataHub's GraphQL API rather than depending on any specific sample dataset's own tags.
+
+## Platform
+
+A local backend agent (Python CLI), not a hosted web app — there's no live URL to click into. Intended platform: Linux or macOS with Docker and Python 3.11+; developed and tested on Ubuntu 26.04 (WSL2), not verified on native Windows or macOS. Setup and testing instructions are in the repo's README; the demo video shows it running end-to-end.
 
 ## Technologies
 
