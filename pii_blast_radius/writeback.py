@@ -37,7 +37,10 @@ async def write_finding(session: ClientSession, subject_id: str, classification:
         },
     )
 
-    note = f"[DSR agent] subject={subject_id} verdict={classification.verdict}: {classification.rationale}"
+    # Leading blank line so repeated DSRs on the same asset don't run
+    # together into one illegible block (confirmed -- two real runs against
+    # the same asset produced "...contact details.[DSR agent] subject=...").
+    note = f"\n\n[DSR agent] subject={subject_id} verdict={classification.verdict}: {classification.rationale}"
     await call_tool_checked(
         session,
         "update_description",
