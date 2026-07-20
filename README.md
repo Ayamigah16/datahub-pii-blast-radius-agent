@@ -13,6 +13,10 @@ lineage-tag-propagation or Analytics Agent's existing write-back.
 description; [demo-script.md](demo-script.md) is the shot-by-shot script for
 the 3-minute demo video.
 
+![The customers dataset in DataHub, showing the cust_email column tagged PII, the dsr-pending tag the agent applied, and its appended note in the Documentation panel](docs/datahub-writeback.png)
+
+*A real run's write-back, viewed directly in DataHub: `cust_email` tagged PII, the agent's `dsr-pending` tag on the dataset, and its note appended to the existing documentation.*
+
 ## How it uses DataHub
 
 Connects as an MCP client to the official [DataHub MCP Server](https://github.com/acryldata/mcp-server-datahub):
