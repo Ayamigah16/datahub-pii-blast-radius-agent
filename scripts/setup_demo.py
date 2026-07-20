@@ -17,11 +17,12 @@ from pii_blast_radius.mcp_client import call_tool_checked, datahub_session
 from pii_blast_radius.writeback import TAG_BY_VERDICT
 
 # Tags must already exist as entities in DataHub before add_tags can apply
-# them -- this is the one showcase-ecommerce ships with (confirmed via
-# `datahub search query "PII"` against a running instance). If you're using a
-# different datapack, create the tag first (DataHub UI, or the datahub CLI's
-# tag commands) rather than inventing a URN here.
-PII_TAG_URN = "urn:li:tag:b2fd91.PII_Data"
+# them. showcase-ecommerce ships its own PII tag, but it's namespaced with a
+# random-looking prefix generated fresh per datapack load (e.g.
+# "urn:li:tag:b2fd91.PII_Data") -- hardcoding that prefix broke on the very
+# next reload. Creating our own tag instead sidesteps depending on datapack
+# internals entirely.
+PII_TAG_URN = "urn:li:tag:pii-data"
 
 
 @click.command()
@@ -31,12 +32,12 @@ def tag_pii_column(dataset_urn: str, column: str):
     asyncio.run(_tag(dataset_urn, column))
 
 
-def _ensure_dsr_status_tags_exist(gms_url: str) -> None:
+def _ensure_tags_exist(gms_url: str, tag_urns: set[str]) -> None:
     # The MCP server's add_tags requires tags to already exist as entities --
     # it has no create_tag tool, so this goes straight to DataHub's GraphQL
     # API (createTag) instead. createTag isn't idempotent (errors on a tag
     # that already exists), so treat that specific error as success.
-    for tag_urn in set(TAG_BY_VERDICT.values()):
+    for tag_urn in tag_urns:
         tag_id = tag_urn.removeprefix("urn:li:tag:")
         response = requests.post(
             f"{gms_url}/api/graphql",
@@ -46,7 +47,7 @@ def _ensure_dsr_status_tags_exist(gms_url: str) -> None:
                     "input": {
                         "id": tag_id,
                         "name": tag_id,
-                        "description": "Data-subject-request status tag, applied by the PII blast-radius agent.",
+                        "description": "Created by the PII blast-radius agent's setup script.",
                     }
                 },
             },
@@ -60,7 +61,7 @@ def _ensure_dsr_status_tags_exist(gms_url: str) -> None:
 
 async def _tag(dataset_urn: str, column: str):
     config = load_config()
-    _ensure_dsr_status_tags_exist(config.datahub_gms_url)
+    _ensure_tags_exist(config.datahub_gms_url, {PII_TAG_URN, *TAG_BY_VERDICT.values()})
 
     async with datahub_session(config) as session:
         await call_tool_checked(

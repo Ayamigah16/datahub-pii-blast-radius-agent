@@ -27,10 +27,13 @@ that weren't obvious going in, in case you extend this:
 
 - **Tags must already exist as entities before `add_tags` can apply them** --
   DataHub rejects a tag URN that hasn't been created yet. `setup_demo.py`
-  creates the `dsr-*` status tags via a direct GraphQL `createTag` call (the
-  MCP server has no `create_tag` tool), and reuses the PII tag
-  `showcase-ecommerce` already ships (`urn:li:tag:b2fd91.PII_Data`) rather
-  than inventing a new one for the source column.
+  creates the `dsr-*` status tags plus its own `pii-data` tag via a direct
+  GraphQL `createTag` call (the MCP server has no `create_tag` tool). Earlier
+  this reused `showcase-ecommerce`'s bundled PII tag instead, but that tag is
+  namespaced with a random-looking prefix generated fresh on every datapack
+  load (`urn:li:tag:b2fd91.PII_Data` was specific to one load) -- hardcoding
+  it broke on the very next reload, so this project creates its own tag
+  instead of depending on datapack internals.
 - **Column-level tags/descriptions live under `editableSchemaMetadata`, not
   `schemaMetadata`** -- the latter is the raw ingested aspect; user/agent edits
   go into the former. If you're spot-checking write-backs via GraphQL
@@ -60,12 +63,15 @@ entity types beyond Dataset (dashboards, ML models) if you hit empty names/descr
    ```
 
 1. Install the DataHub CLI and start DataHub locally, then load a demo dataset
-   with real cross-platform lineage:
+   with real cross-platform lineage. The `datahub` CLI is a separate program
+   from this project's own code -- it doesn't read `.env`, so it needs
+   `DATAHUB_GMS_URL` exported directly in every new terminal:
 
    ```bash
    pip install acryl-datahub
    datahub docker quickstart
    # UI at http://localhost:9002, login datahub / datahub
+   export DATAHUB_GMS_URL=http://localhost:8080   # required for every `datahub ...` command below
    datahub datapack load showcase-ecommerce
    ```
 
@@ -77,20 +83,31 @@ entity types beyond Dataset (dashboards, ML models) if you hit empty names/descr
 
 3. Classification runs on Claude via **AWS Bedrock**, not a plain Anthropic
    API key. In the AWS Console, go to Bedrock -> Model access and request
-   access to the Anthropic models (usually instant), then copy the exact
-   model ID from the Bedrock model catalog. Copy `.env.example` to `.env` and
-   fill in `AWS_REGION` and `BEDROCK_MODEL_ID`; AWS credentials themselves
-   come from the normal boto3 chain (`aws sso login`, `~/.aws/credentials`,
-   or env vars), not from `.env`. Local DataHub quickstart doesn't enable GMS
-   auth by default, so `DATAHUB_GMS_TOKEN` can stay blank unless you've
-   turned on `METADATA_SERVICE_AUTH_ENABLED`.
+   access to the Anthropic models (usually instant, but not guaranteed --
+   sandbox/training accounts can have org policies blocking premium models
+   regardless of the request), then copy the exact model ID from the Bedrock
+   model catalog -- if it's a newer model, you likely need the cross-region
+   inference profile ID (`eu.anthropic....` / `us.anthropic....`) rather than
+   the bare model ID, or invocation fails with "on-demand throughput isn't
+   supported." Copy `.env.example` to `.env` (this project loads it
+   automatically via `python-dotenv`) and fill in `AWS_REGION` and
+   `BEDROCK_MODEL_ID`; AWS credentials themselves come from the normal boto3
+   chain (`aws sso login`, `~/.aws/credentials`, or env vars), not from
+   `.env`. Local DataHub quickstart doesn't enable GMS auth by default, so
+   `DATAHUB_GMS_TOKEN` can stay blank unless you've turned on
+   `METADATA_SERVICE_AUTH_ENABLED`.
+
+   If Bedrock access never comes through, the agent automatically falls back
+   to Mistral's API on a Bedrock permission error -- get a free key at
+   console.mistral.ai (phone verification, no card) and set `MISTRAL_API_KEY`
+   in `.env`. Not required unless the fallback actually triggers.
 
 4. Find a real dataset URN to point at -- URNs from `showcase-ecommerce`
    aren't predictable ahead of time (they're namespaced with a random-looking
-   prefix per load), so search for one:
+   prefix per load), so search for one (same terminal as step 1, so
+   `DATAHUB_GMS_URL` is still exported; open a new terminal, re-export it first):
 
    ```bash
-   export DATAHUB_GMS_URL=http://localhost:8080   # the CLI needs this too, separately from .env
    datahub search query "customer"   # grep the output for a urn:li:dataset:(...) you recognize
    datahub dataset get --urn "<that urn>"   # confirm it has a PII-ish column, e.g. an email field
    ```
@@ -111,9 +128,10 @@ entity types beyond Dataset (dashboards, ML models) if you hit empty names/descr
      --output examples/sample_checklist.md
    ```
 
-See `examples/sample_checklist.md` for the expected output shape (currently a
-hand-written illustration — replace it with real output once the pipeline runs
-end-to-end).
+`examples/sample_checklist.md` holds real output from an actual run against
+the `showcase-ecommerce` datapack (12 downstream assets traced from a tagged
+`cust_email` column) -- re-run step 6 to regenerate it if you reload the
+datapack, since URNs and lineage aren't guaranteed identical between loads.
 
 ## Project structure
 

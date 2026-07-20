@@ -1,5 +1,13 @@
 import os
 
+from dotenv import load_dotenv
+
+# Loads .env into the environment on first import of this module. Without
+# this, .env sits on disk unread and every entrypoint needs its variables
+# exported by hand first -- which is how this project was actually tested
+# during development, and not what the README tells a fresh user to do.
+load_dotenv()
+
 
 class ConfigError(RuntimeError):
     pass
