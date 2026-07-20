@@ -81,24 +81,18 @@ entity types beyond Dataset (dashboards, ML models) if you hit empty names/descr
    pip install -r requirements.txt
    ```
 
-3. Classification runs on Claude via **AWS Bedrock**, not a plain Anthropic
-   API key. In the AWS Console, go to Bedrock -> Model access and request
-   access to the Anthropic models (usually instant, but not guaranteed --
-   sandbox/training accounts can have org policies blocking premium models
-   regardless of the request), then copy the exact model ID from the Bedrock
-   model catalog -- if it's a newer model, you likely need the cross-region
-   inference profile ID (`eu.anthropic....` / `us.anthropic....`) rather than
-   the bare model ID, or invocation fails with "on-demand throughput isn't
-   supported." Copy `.env.example` to `.env` (this project loads it
-   automatically via `python-dotenv`) and fill in `AWS_REGION` and
-   `BEDROCK_MODEL_ID`; AWS credentials themselves come from the normal boto3
-   chain (`aws sso login`, `~/.aws/credentials`, or env vars), not from
-   `.env`. Local DataHub quickstart doesn't enable GMS auth by default, so
-   `DATAHUB_GMS_TOKEN` can stay blank unless you've turned on
-   `METADATA_SERVICE_AUTH_ENABLED`.
+3. Classification runs on Claude via a **direct Anthropic API key** --
+   deliberately not AWS Bedrock, since a sandbox/training AWS account's org
+   policy for external use can't be verified, and a personal key avoids that
+   question entirely. Get one at console.anthropic.com -> Settings -> API
+   Keys (billed separately from a claude.ai subscription). Copy
+   `.env.example` to `.env` (this project loads it automatically via
+   `python-dotenv`) and fill in `ANTHROPIC_API_KEY`. Local DataHub quickstart
+   doesn't enable GMS auth by default, so `DATAHUB_GMS_TOKEN` can stay blank
+   unless you've turned on `METADATA_SERVICE_AUTH_ENABLED`.
 
-   If Bedrock access never comes through, the agent automatically falls back
-   to Mistral's API on a Bedrock permission error -- get a free key at
+   If the Anthropic call fails for any reason (rate limit, auth issue), the
+   agent automatically falls back to Mistral's API -- get a free key at
    console.mistral.ai (phone verification, no card) and set `MISTRAL_API_KEY`
    in `.env`. Not required unless the fallback actually triggers.
 

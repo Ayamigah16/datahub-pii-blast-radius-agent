@@ -5,12 +5,12 @@ This is the part a plain lineage-tag-propagation script can't do -- it reads
 the asset's description and reasons about aggregation level instead of
 blindly flagging everything reachable downstream.
 
-Runs on Claude via AWS Bedrock by default, falling back to Mistral's API if
-Bedrock raises a permission error (e.g. a sandbox account whose org policy
-restricts premium models -- that's a real, currently-unresolved case for this
-project, not a hypothetical). Both paths force a tool call for the verdict
-rather than asking for JSON in free text: smaller/cheaper models (Haiku,
-Mistral's free tier) don't reliably follow a "respond with strict JSON"
+Runs on Claude via a direct Anthropic API key by default, falling back to
+Mistral's API if the Anthropic call fails (rate limit, auth issue, or any
+other API-level error) -- resilience against the primary path breaking
+mid-demo, not a workaround for an access problem. Both paths force a tool
+call for the verdict rather than asking for JSON in free text: smaller/
+cheaper models don't reliably follow a "respond with strict JSON"
 instruction, but a forced tool call always returns structured output.
 """
 
@@ -18,7 +18,7 @@ import json
 from dataclasses import dataclass
 from typing import Literal
 
-from anthropic import AnthropicBedrock, PermissionDeniedError
+from anthropic import Anthropic, APIStatusError
 from mistralai.client import Mistral
 
 from .config import Config
@@ -61,15 +61,15 @@ class Classification:
 
 
 def classify_asset(
-    bedrock_client: AnthropicBedrock,
+    anthropic_client: Anthropic,
     mistral_client: Mistral,
     config: Config,
     asset: DownstreamAsset,
     source_column: str,
 ) -> Classification:
     try:
-        return _classify_with_bedrock(bedrock_client, config, asset, source_column)
-    except PermissionDeniedError:
+        return _classify_with_anthropic(anthropic_client, config, asset, source_column)
+    except APIStatusError:
         return _classify_with_mistral(mistral_client, config, asset, source_column)
 
 
@@ -82,8 +82,8 @@ def _user_prompt(asset: DownstreamAsset, source_column: str) -> str:
     )
 
 
-def _classify_with_bedrock(
-    client: AnthropicBedrock, config: Config, asset: DownstreamAsset, source_column: str
+def _classify_with_anthropic(
+    client: Anthropic, config: Config, asset: DownstreamAsset, source_column: str
 ) -> Classification:
     message = client.messages.create(
         model=config.anthropic_model,
@@ -102,7 +102,7 @@ def _classify_with_bedrock(
     for block in message.content:
         if block.type == "tool_use":
             return Classification(asset=asset, verdict=block.input["verdict"], rationale=block.input["rationale"])
-    raise ValueError("Bedrock response contained no tool_use block")
+    raise ValueError("Anthropic response contained no tool_use block")
 
 
 def _classify_with_mistral(

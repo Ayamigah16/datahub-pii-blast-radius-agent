@@ -2,7 +2,7 @@ import asyncio
 import os
 
 import click
-from anthropic import AnthropicBedrock
+from anthropic import Anthropic
 from mistralai.client import Mistral
 
 from .config import load_config
@@ -27,10 +27,11 @@ def run_dsr(source_urn: str, source_column: str, subject_id: str, output: str, d
 
 async def _run(source_urn: str, source_column: str, subject_id: str, output: str, dry_run: bool):
     config = load_config()
-    bedrock_client = AnthropicBedrock(aws_region=config.aws_region, aws_profile=config.aws_profile)
-    # api_key=None is fine here -- Mistral is only a fallback if Bedrock
-    # raises a permission error, so MISTRAL_API_KEY isn't required unless
-    # that fallback actually triggers (see reason.py).
+    # Neither client requires its key to be present at construction time --
+    # Mistral is only a fallback if the Anthropic call fails, so neither
+    # ANTHROPIC_API_KEY nor MISTRAL_API_KEY is required here unless the
+    # corresponding path is actually used (see reason.py).
+    anthropic_client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     mistral_client = Mistral(api_key=os.environ.get("MISTRAL_API_KEY"))
 
     async with datahub_session(config) as session:
@@ -38,7 +39,7 @@ async def _run(source_urn: str, source_column: str, subject_id: str, output: str
         click.echo(f"Found {len(assets)} downstream assets from {source_urn}")
 
         classifications = [
-            classify_asset(bedrock_client, mistral_client, config, asset, source_column) for asset in assets
+            classify_asset(anthropic_client, mistral_client, config, asset, source_column) for asset in assets
         ]
 
         if not dry_run:

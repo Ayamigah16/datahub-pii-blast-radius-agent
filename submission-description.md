@@ -36,7 +36,7 @@ A local backend agent (Python CLI), not a hosted web app — there's no live URL
 ## Technologies
 
 - Python, DataHub MCP Server (`mcp-server-datahub`), Model Context Protocol (`mcp`)
-- Claude via AWS Bedrock for the reasoning/classification step, with an automatic fallback to Mistral's API if Bedrock access is unavailable (tested and working — both paths force a tool call for structured output rather than parsing free-text JSON, which is what actually made classification reliable)
+- Claude via a direct Anthropic API key for the reasoning/classification step, with an automatic fallback to Mistral's API if that call fails (tested and working — both paths force a tool call for structured output rather than parsing free-text JSON, which is what actually made classification reliable)
 - DataHub open-source platform (`datahub docker quickstart`), `showcase-ecommerce` sample datapack (real cross-platform lineage across Snowflake, dbt, Looker, PowerBI, Tableau)
 
 ## Repo
