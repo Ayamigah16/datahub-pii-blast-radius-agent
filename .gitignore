@@ -3,3 +3,4 @@ venv/
 __pycache__/
 *.pyc
 dsr_checklist.md
+mcp_server_datahub.log

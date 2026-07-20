@@ -5,11 +5,14 @@ installed mcp-server-datahub 0.6.0 source, not guessed from docs."""
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from .config import Config
+
+MCP_SERVER_LOG_PATH = Path("mcp_server_datahub.log")
 
 
 def _server_params(config: Config) -> StdioServerParameters:
@@ -31,10 +34,16 @@ def _server_params(config: Config) -> StdioServerParameters:
 
 @asynccontextmanager
 async def datahub_session(config: Config):
-    async with stdio_client(_server_params(config)) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            yield session
+    # mcp-server-datahub logs every GraphQL query it runs at DEBUG level to
+    # stderr, which stdio_client pipes straight to our own terminal by
+    # default -- floods any real run (or demo recording) with query dumps
+    # instead of this project's own progress output. Redirected to a file
+    # rather than discarded, since it's genuinely useful if a tool call fails.
+    with open(MCP_SERVER_LOG_PATH, "a") as server_log:
+        async with stdio_client(_server_params(config), errlog=server_log) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                yield session
 
 
 async def call_tool_checked(session: ClientSession, name: str, arguments: dict):

@@ -8,7 +8,7 @@ from mistralai.client import Mistral
 from .config import load_config
 from .mcp_client import datahub_session
 from .reason import classify_asset
-from .report import build_checklist
+from .report import VERDICT_LABEL, build_checklist
 from .trace import get_downstream_assets
 from .writeback import write_finding
 
@@ -36,13 +36,16 @@ async def _run(source_urn: str, source_column: str, subject_id: str, output: str
 
     async with datahub_session(config) as session:
         assets = await get_downstream_assets(session, source_urn, source_column)
-        click.echo(f"Found {len(assets)} downstream assets from {source_urn}")
+        click.echo(f"Found {len(assets)} downstream assets from {source_urn}\n")
 
-        classifications = [
-            classify_asset(anthropic_client, mistral_client, config, asset, source_column) for asset in assets
-        ]
+        classifications = []
+        for i, asset in enumerate(assets, start=1):
+            classification = classify_asset(anthropic_client, mistral_client, config, asset, source_column)
+            classifications.append(classification)
+            click.echo(f"[{i}/{len(assets)}] {asset.name}: {VERDICT_LABEL[classification.verdict]}")
 
         if not dry_run:
+            click.echo("\nWriting findings back to DataHub...")
             for classification in classifications:
                 await write_finding(session, subject_id, classification)
 

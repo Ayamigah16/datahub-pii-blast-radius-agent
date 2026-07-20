@@ -3,7 +3,7 @@ this, not the write-back call, is the artifact judges should evaluate."""
 
 from .reason import Classification
 
-_VERDICT_LABEL = {
+VERDICT_LABEL = {
     "raw_exposure": "ACTION NEEDED",
     "no_action_aggregated": "no action (aggregated)",
     "unclear_needs_review": "needs human review",
