@@ -1,7 +1,8 @@
-# Plan for contributing to datahub-project/datahub-skills
+# Contributing to datahub-project/datahub-skills
 
-Not submitted yet -- drafted here for review first, since opening a PR
-against an external project is a public action under your GitHub identity.
+**Submitted:** <https://github.com/datahub-project/datahub-skills/pull/43>
+(the "validate-conventional-commit-title" check passed; the rest of this
+file is the plan as drafted before opening it, kept for reference).
 
 ## Target repo
 

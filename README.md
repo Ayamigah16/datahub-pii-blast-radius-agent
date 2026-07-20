@@ -147,6 +147,14 @@ examples/
   sample_checklist.md   sample output artifact
 ```
 
+## Open-source contribution
+
+Opened [datahub-project/datahub-skills#43](https://github.com/datahub-project/datahub-skills/pull/43),
+extending the existing `datahub-lineage` skill with a compliance/
+data-subject-request impact-analysis template distilled from this
+project's reasoning pattern. Drafted in `datahub-skills-contribution/`
+before submitting.
+
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE).

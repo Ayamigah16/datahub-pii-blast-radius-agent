@@ -39,6 +39,10 @@ A local backend agent (Python CLI), not a hosted web app — there's no live URL
 - Claude via a direct Anthropic API key for the reasoning/classification step, with an automatic fallback to Mistral's API if that call fails (tested and working — both paths force a tool call for structured output rather than parsing free-text JSON, which is what actually made classification reliable)
 - DataHub open-source platform (`datahub docker quickstart`), `showcase-ecommerce` sample datapack (real cross-platform lineage across Snowflake, dbt, Looker, PowerBI, Tableau)
 
+## Open-source contribution
+
+Opened [datahub-project/datahub-skills#43](https://github.com/datahub-project/datahub-skills/pull/43): extends the existing `datahub-lineage` skill with a compliance/data-subject-request impact-analysis template and workflow, distilled from this project's own reasoning pattern (row-level exposure vs. safely aggregated) for other agents to reuse.
+
 ## Repo
 
 https://github.com/Ayamigah16/datahub-pii-blast-radius-agent (Apache 2.0)
