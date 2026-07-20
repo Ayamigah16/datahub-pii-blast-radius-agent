@@ -9,6 +9,9 @@ checklist instead of re-deriving one by hand.
 See [project-brief.md](project-brief.md) for the problem statement, category
 rationale (Theme 1: Agents That Do Real Work), and why this goes beyond
 lineage-tag-propagation or Analytics Agent's existing write-back.
+[submission-description.md](submission-description.md) is the Devpost text
+description; [demo-script.md](demo-script.md) is the shot-by-shot script for
+the 3-minute demo video.
 
 ## How it uses DataHub
 
