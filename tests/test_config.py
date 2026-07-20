@@ -49,4 +49,4 @@ def test_anthropic_model_has_a_sensible_default(base_env, monkeypatch):
 
 def test_mistral_model_has_a_sensible_default(base_env, monkeypatch):
     monkeypatch.delenv("MISTRAL_MODEL", raising=False)
-    assert Config().mistral_model == "mistral-large-latest"
+    assert Config().mistral_model == "mistral-small-latest"

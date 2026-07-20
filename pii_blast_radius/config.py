@@ -64,7 +64,7 @@ class Config:
 
     @property
     def mistral_model(self) -> str:
-        return os.environ.get("MISTRAL_MODEL", "mistral-large-latest")
+        return os.environ.get("MISTRAL_MODEL", "mistral-small-latest")
 
 
 def load_config() -> Config:
