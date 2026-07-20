@@ -43,6 +43,15 @@ class Config:
         return _require("ANTHROPIC_API_KEY")
 
     @property
+    def anthropic_api_key_configured(self) -> bool:
+        # An empty (not missing) key makes the Anthropic SDK raise a plain
+        # TypeError at request-build time, before any HTTP call -- unlike an
+        # invalid-but-present key, which fails server-side with a catchable
+        # APIStatusError. classify_asset checks this first so an unset key
+        # falls back to Mistral cleanly instead of crashing.
+        return bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+    @property
     def anthropic_model(self) -> str:
         return os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
 

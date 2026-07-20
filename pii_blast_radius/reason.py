@@ -15,11 +15,13 @@ instruction, but a forced tool call always returns structured output.
 """
 
 import json
+import time
 from dataclasses import dataclass
 from typing import Literal
 
 from anthropic import Anthropic, APIStatusError
 from mistralai.client import Mistral
+from mistralai.client.errors.sdkerror import SDKError
 
 from .config import Config
 from .trace import DownstreamAsset
@@ -67,6 +69,8 @@ def classify_asset(
     asset: DownstreamAsset,
     source_column: str,
 ) -> Classification:
+    if not config.anthropic_api_key_configured:
+        return _classify_with_mistral(mistral_client, config, asset, source_column)
     try:
         return _classify_with_anthropic(anthropic_client, config, asset, source_column)
     except APIStatusError:
@@ -106,27 +110,39 @@ def _classify_with_anthropic(
 
 
 def _classify_with_mistral(
-    client: Mistral, config: Config, asset: DownstreamAsset, source_column: str
+    client: Mistral, config: Config, asset: DownstreamAsset, source_column: str, _retries: int = 3
 ) -> Classification:
-    response = client.chat.complete(
-        model=config.mistral_model,
-        max_tokens=300,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": _user_prompt(asset, source_column)},
-        ],
-        tools=[
-            {
-                "type": "function",
-                "function": {
-                    "name": "classify_asset",
-                    "description": "Record the classification for this downstream asset.",
-                    "parameters": _PARAMETERS,
-                },
-            }
-        ],
-        tool_choice={"type": "function", "function": {"name": "classify_asset"}},
-    )
+    # The free tier's rate limit is tight enough to hit during a real run of
+    # 12+ sequential classifications (confirmed -- not hypothetical), so a
+    # 429 here gets a couple of short retries before giving up, rather than
+    # crashing the whole pipeline over one rate-limited asset.
+    for attempt in range(_retries):
+        try:
+            response = client.chat.complete(
+                model=config.mistral_model,
+                max_tokens=300,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": _user_prompt(asset, source_column)},
+                ],
+                tools=[
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "classify_asset",
+                            "description": "Record the classification for this downstream asset.",
+                            "parameters": _PARAMETERS,
+                        },
+                    }
+                ],
+                tool_choice={"type": "function", "function": {"name": "classify_asset"}},
+            )
+            break
+        except SDKError as e:
+            is_rate_limited = getattr(e.raw_response, "status_code", None) == 429
+            if not is_rate_limited or attempt == _retries - 1:
+                raise
+            time.sleep(2 * (attempt + 1))
     tool_calls = response.choices[0].message.tool_calls
     if not tool_calls:
         raise ValueError("Mistral response contained no tool call")
